@@ -246,3 +246,49 @@ def extract_fighter_data(fighter_html:str) -> dict:
     }
 
     return fighter_data
+
+def get_n_extract_fighter_data(link: str)->dict:
+    try:
+        page = basic_request(link, LOGGER)
+    except RuntimeError as e:
+        raise RuntimeError from e
+    
+    fighter_dict = extract_fighter_data(page)
+
+    return fighter_dict
+
+def executer() -> None:
+    global LOGGER
+
+    _, data_folder, _, _, log_file_path = setup_basic_file_paths(
+        PROJECT_NAME)
+    
+    LOGGER = setup_logger(log_file_path)
+
+    fighter_links = get_fighters()
+
+    #save file for all fighters
+    ndjson_file_path = os.path.join(data_folder, 'fighter_data.ndjson')
+
+    #get data for each fighter
+    for i, fighter in enumerate(fighter_links):
+        LOGGER.info('Processing %d out of %d. Fighter url: %s', i, len(fighter_links), fighter)
+        try:
+            fighter_data = get_n_extract_fighter_data(fighter)
+
+            save_ndjson(fighter_data, ndjson_file_path)
+
+            if RUN_ONLY_ONE:
+                break
+            if RUN_25_ITR and i == 24:
+                break
+        except RuntimeError:
+            LOGGER.debug('Skipping fighter due to requests error : %s', fighter)
+
+            if RUN_ONLY_ONE:
+                break
+            if RUN_25_ITR and i == 24:
+                break
+
+            continue
+    LOGGER.info('Finished executor')
