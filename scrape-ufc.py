@@ -26,8 +26,8 @@ LOGGER = None
 
 #returns set with links for each fighter
 def extract_fighter_pagelinks(html: str) -> set[str]:
-    soup = BeautifulSoup()
-    
+    soup = BeautifulSoup(html, 'html.parser')
+
     tags = soup.select('tr.b-statistics__table-row a')
     links = [tag.get('href') for tag in tags]
 
@@ -203,25 +203,27 @@ def extract_fighter_data(fighter_html:str) -> dict:
 
     try:
         fighter_name = soup.select_one(
-            'b-content__title-highlight').get_text(strip = True)
+            '.b-content__title-highlight').get_text(strip = True)
     except AttributeError:
         fighter_name = None
 
     try:
         win,loss,draw = soup.select_one(
-            'b-content__title-record').get_text(strip = True)\
+            '.b-content__title-record').get_text(strip = True)\
             .split(' ',maxsplit=1)[-1]\
             .strip()\
             .split(' ')[0]\
             .strip()\
             .split('-')
-        
+
         win, loss, draw = int(win), int(loss), int(draw)
     except (AttributeError, ValueError):
-        win, loss, draw = None
-    
-    try: 
-        nickname = soup.select_one('b-content__Nickname').get_text(strip = True)
+        win = None
+        loss = None
+        draw = None
+
+    try:
+        nickname = soup.select_one('.b-content__Nickname').get_text(strip = True)
         if nickname == "":
             nickname = None
     except AttributeError:
@@ -243,7 +245,7 @@ def extract_fighter_data(fighter_html:str) -> dict:
         "dob" : bio_data['date_of_birth'],
         "ss_landed_per_minute" : career_data['ss_landed_per_minute'],
         "ss_accuracy" : career_data['ss_accuracy'],
-        "ss_absorbed_per_min" : career_data['ss_absorbed_per_minute'],
+        "ss_absorbed_per_min" : career_data['ss_absorbed_per_min'],
         "ss_defence" : career_data['ss_defence'],
         "avg_td_per_15" : career_data['avg_td_per_15'],
         "td_accuracy" : career_data['td_accuracy'],
