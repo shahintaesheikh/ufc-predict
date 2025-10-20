@@ -8,7 +8,13 @@ from typing import Optional, Union
 import pint
 from bs4 import BeautifulSoup
 from icecream import ic
-from requests import basic_request
+from utils import (
+    basic_request,
+    setup_basic_file_paths,
+    setup_logger,
+    save_ndjson,
+    format_error
+)
 
 #global variables
 RUN_ONLY_ONE = False
@@ -292,3 +298,6 @@ def executer() -> None:
 
             continue
     LOGGER.info('Finished executor')
+
+if __name__ == '__main__':
+    executer()
