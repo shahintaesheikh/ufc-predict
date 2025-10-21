@@ -144,11 +144,60 @@ event_dict = {"Event": ["-"],
 
 fight_data = pd.DataFrame(event_dict)
 
+rc = 0
+
 for i in range(len(event_links)):
     url = event_links[i]
     
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    event_dict["Event"] = soup.find('span', class_ = "b-content__title-highlight").get_text(strip=True)
+    event_title = soup.find('span', class_ = "b-content__title-highlight").get_text(strip=True)
+
+    date_and_loc = soup.find_all('li', class_ = "b-list__box-list-item")
+
+    event_loc = {}
+
+    for tag in date_and_loc:
+        title_text = tag.find('i').get_text(strip=True)
+        all_text = tag.get_text(strip=True)
+        event_loc[title_text] = all_text.replace(title_text, "")
+
+    fights = soup.find_all('tr', class_='b-fight-details__table-row b-fight-details__table-row__hover js-fight-details-click')
+
+    for fight in fights:
+        fight_data.loc[rc, "Event"] = event_title
+        fight_data.loc[rc, "Date"] = event_loc["Date:"]
+        fight_data.loc[rc, "Location"] = event_loc["Location:"]
+
+        #win/loss
+        fight_details = fight.find_all('td')
+        fight_data.loc[rc, "WL"] = fight_details[0].get_text(strip=True).upper()
+        #fight names
+        fighter_names = fight_details[1].find_all('p')
+        fight_data.loc[rc, "Fighter_A"] = fighter_names[0].get_text(strip=True)
+        fight_data.loc[rc, "Fighter_B"] = fighter_names[1].get_text(strip=True)
+        #fight statistics
+        KD = fight_details[2].find_all('p')
+        fight_data.loc[rc, "Fighter_A_KD"] = KD[0].get_text(strip=True)
+        fight_data.loc[rc, "Fighter_B_KD"] = KD[1].get_text(strip=True)
+
+        STR = fight_details[3].find_all('p')
+        fight_data.loc[rc, "Fighter_A_STR"] = STR[0].get_text(strip=True)
+        fight_data.loc[rc, "Fighter_B_STR"] = STR[1].get_text(strip=True)
+
+        TD = fight_details[4].find_all('p')
+        fight_data.loc[rc, "Fighter_A_TD"] = TD[0].get_text(strip=True)
+        fight_data.loc[rc, "Fighter_B_TD"] = TD[1].get_text(strip=True)
+
+        SUB = fight_details[5].find_all('p')
+        fight_data.loc[rc, "Fighter_A_SUB"] = SUB[0].get_text(strip=True)
+        fight_data.loc[rc, "Fighter_B_SUB"] = SUB[1].get_text(strip=True)
+
+        fight_data.loc[rc, "Weight_Class"] = fight_details[6].get_text(strip=True)
+        fight_data.loc[rc, "Victory_Method"] = fight_details[7].get_text(strip=True)
+        fight_data.loc[rc, "Round"] = fight_details[8].get_text(strip=True)
+        fight_data.loc[rc, "Time"] = fight_details[9].get_text(strip=True)
+
+        rc += 1
 
