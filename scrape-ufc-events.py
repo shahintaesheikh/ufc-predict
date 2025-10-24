@@ -135,8 +135,11 @@ fight_data = pd.DataFrame(event_dict)
 
 rc = 0
 
-for i in range(len(event_links)):
+RUN_LIMIT = 20  # Limit number of events to scrape for testing
+
+for i in range(min(len(event_links), RUN_LIMIT)):
     url = event_links[i]
+    print(f"Processing event {i+1}/{min(len(event_links), RUN_LIMIT)}: {url}")
 
     # Add delay to avoid overwhelming the server
     if i > 0:
