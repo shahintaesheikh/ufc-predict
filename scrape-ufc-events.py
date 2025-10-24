@@ -195,9 +195,27 @@ for i in range(len(event_links)):
         fight_data.loc[rc, "Fighter_B_SUB"] = SUB[1].get_text(strip=True)
 
         fight_data.loc[rc, "Weight_Class"] = fight_details[6].get_text(strip=True)
-        fight_data.loc[rc, "Victory_Method"] = fight_details[7].get_text(strip=True)
+        img_list = fight_details[6].find_all('img')
+        img_dn = {"belt.png":0, "fight.png":0, "perf.png":0, "sub.png":0, "ko.png":0}
+        if len(img_list) != 0:
+            for img in img_list:
+                src = img.get('src')
+                #last thing in the hyperlik will reveal what type of symbol it has
+                key = src.split('/')[-1]
+                img_dn[key] = 1
+
+        fight_data.loc[rc, "Title"] = img_dn["belt.png"]
+        fight_data.loc[rc, "Fight_Bonus"] = img_dn["fight.png"]
+        fight_data.loc[rc, "Perf_Bonus"] = img_dn["perf.png"]
+        fight_data.loc[rc, "KO_Bonus"] = img_dn["ko.png"]
+        fight_data.loc[rc, "Sub_Bonus"] = img_dn["sub.png"]
+
+        method = fight_details[7].get_text(strip=True)
+        fight_data.loc[rc, "Victory_Result"] = method[0].get_text(strip=True)
+        fight_data.loc[rc, "Victory_Method"] = method[1].get_text(strip=True)
         fight_data.loc[rc, "Round"] = fight_details[8].get_text(strip=True)
         fight_data.loc[rc, "Time"] = fight_details[9].get_text(strip=True)
 
         rc += 1
 
+fight_data.to_csv("/Users/da/Downloads/UFC_Events.csv", index=False)
