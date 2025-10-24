@@ -2,9 +2,7 @@ import string
 import datetime
 import re
 import os
-import logging
 import time
-from typing import Optional, Union
 import pint
 from bs4 import BeautifulSoup
 from icecream import ic
@@ -39,8 +37,12 @@ def get_fighters() -> set[str]:
     letters = string.ascii_lowercase
     all_links = set()
 
-    for letter in letters:
+    for i, letter in enumerate(letters):
         LOGGER.info('Exctracting letters %s', letter)
+
+        # Add delay to avoid overwhelming the server
+        if i > 0:
+            time.sleep(1)
 
         url = f'http://ufcstats.com/statistics/fighters?char={letter}&page=all'
         try:
@@ -281,6 +283,11 @@ def executer() -> None:
     #get data for each fighter
     for i, fighter in enumerate(fighter_links):
         LOGGER.info('Processing %d out of %d. Fighter url: %s', i, len(fighter_links), fighter)
+
+        # Add delay to avoid overwhelming the server
+        if i > 0:
+            time.sleep(0.5)
+
         try:
             fighter_data = get_n_extract_fighter_data(fighter)
 

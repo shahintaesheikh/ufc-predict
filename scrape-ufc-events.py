@@ -1,20 +1,9 @@
-import string
-import datetime
-import re
 import os
-import logging
 import time
 import requests
-from typing import Optional, Union, List, Dict
+from typing import List
 from bs4 import BeautifulSoup
 import pandas as pd
-from utils import (
-    basic_request,
-    setup_basic_file_paths,
-    setup_logger,
-    save_ndjson,
-    format_error
-)
 
 """
 
@@ -148,7 +137,11 @@ rc = 0
 
 for i in range(len(event_links)):
     url = event_links[i]
-    
+
+    # Add delay to avoid overwhelming the server
+    if i > 0:
+        time.sleep(1)
+
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -211,11 +204,21 @@ for i in range(len(event_links)):
         fight_data.loc[rc, "Sub_Bonus"] = img_dn["sub.png"]
 
         method = fight_details[7].get_text(strip=True)
-        fight_data.loc[rc, "Victory_Result"] = method[0].get_text(strip=True)
-        fight_data.loc[rc, "Victory_Method"] = method[1].get_text(strip=True)
+        # Split method text - typically format is like "KO/TKO" or "Decision - Unanimous"
+        if method:
+            fight_data.loc[rc, "Victory_Method"] = method
+            # Extract result type (first word before space or entire string if no space)
+            fight_data.loc[rc, "Victory_Result"] = method.split()[0] if method else ""
+        else:
+            fight_data.loc[rc, "Victory_Method"] = ""
+            fight_data.loc[rc, "Victory_Result"] = ""
         fight_data.loc[rc, "Round"] = fight_details[8].get_text(strip=True)
         fight_data.loc[rc, "Time"] = fight_details[9].get_text(strip=True)
 
         rc += 1
 
-fight_data.to_csv("/Users/da/Downloads/UFC_Events.csv", index=False)
+# Save to data directory instead of hardcoded path
+output_path = os.path.join(os.path.dirname(__file__), 'data', 'UFC_Events.csv')
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+fight_data.to_csv(output_path, index=False)
+print(f"Saved {len(fight_data)} fights to {output_path}")
