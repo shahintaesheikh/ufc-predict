@@ -200,6 +200,10 @@ for row in range(len(A_data)):
         "Time": fight_data.loc[row, "Time"],
         "Weight_Class": fight_data.loc[row, "Weight_Class"],
         "Title": fight_data.loc[row, "Title"],
+        "Fight_Bonus": fight_data.loc[row, "Fight_Bonus"],
+        "Perf_Bonus": fight_data.loc[row, "Perf_Bonus"],
+        "Sub_Bonus": fight_data.loc[row, "Sub_Bonus"],
+        "KO_Bonus": fight_data.loc[row, "KO_Bonus"]
     })
 
     # Append to final dataframe
