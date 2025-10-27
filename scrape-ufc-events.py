@@ -23,34 +23,42 @@ def extract_event_links(html: str) -> List[str]:
 
 event_links = extract_event_links(response.content)
 
-event_dict = {"Event": ["-"],
-       "Date": ["-"],
-       "location": ["-"],
-       "WL": [""],
-       "Fighter_A": ["-"],
-       "Fighter_B": ["-"],
-       "Fighter_A_KD": ["-"],
-       "Fighter_B_KD": ["-"],
-       "Fighter_A_STR": ["-"],
-       "Fighter_B_STR": ["-"],
-       "Fighter_A_TD": ["-"],
-       "Fighter_B_TD": ["-"],
-       "Fighter_A_SUB": ["-"],
-       "Fighter_B_SUB": ["-"],
-       "Victory_Result": ["-"],
-       "Victory_Method": ["-"],
-       "Round": ["-"],
-       "Time": ["-"],
-       "Weight_Class": ["-"],
-       "Winner": ["-"],
-       "Title": [0],
-       "Fight_Bonus": [0],
-       "Perf_Bonus": [0],
-       "Sub_Bonus": [0],
-       "KO_Bonus": [0]
-    }
+event_dict = {
+    "Event": ["-"],
+    "Date": ["-"],
+    "WL": [""],
+    "Victory_Result": ["-"],
+    "Victory_Method": ["-"],
+    "Round": ["-"],
+    "Time": ["-"],
+    "Weight_Class": ["-"],
+    "Winner": ["-"],
+    "Title": [0],
+    "Fight_Bonus": [0],
+    "Perf_Bonus": [0],
+    "Sub_Bonus": [0],
+    "KO_Bonus": [0]
+}
+
+fighter_A_dict = {
+    "Fighter_name": ["-"],
+    "Fighter_KD": ["-"],
+    "Fighter_STR": ["-"],     
+    "Fighter_TD": ["-"],
+    "Fighter_SUB": ["-"],
+}
+
+fighter_B_dict = {
+    "Fighter_name": ["-"],
+    "Fighter_KD": ["-"],
+    "Fighter_STR": ["-"],
+    "Fighter_TD": ["-"],
+    "Fighter_SUB": ["-"]
+}
 
 fight_data = pd.DataFrame(event_dict)
+A_data = pd.DataFrame(fighter_A_dict)
+B_data = pd.DataFrame(fighter_B_dict)
 
 rc = 0
 
@@ -90,26 +98,26 @@ for i in range(min(len(event_links), RUN_LIMIT)):
         fight_data.loc[rc, "WL"] = fight_details[0].get_text(strip=True).upper()
         #fight names
         fighter_names = fight_details[1].find_all('p')
-        fight_data.loc[rc, "Fighter_A"] = fighter_names[0].get_text(strip=True)
-        fight_data.loc[rc, "Fighter_B"] = fighter_names[1].get_text(strip=True)
+        A_data.loc[rc, "Fighter_name"] = fighter_names[0].get_text(strip=True)
+        B_data.loc[rc, "Fighter_name"] = fighter_names[1].get_text(strip=True)
 
         fight_data.loc[rc, "Winner"] = fighter_names[0].get_text(strip=True)
         #fight statistics
         KD = fight_details[2].find_all('p')
-        fight_data.loc[rc, "Fighter_A_KD"] = KD[0].get_text(strip=True)
-        fight_data.loc[rc, "Fighter_B_KD"] = KD[1].get_text(strip=True)
+        A_data.loc[rc, "Fighter_KD"] = KD[0].get_text(strip=True)
+        B_data.loc[rc, "Fighter_KD"] = KD[1].get_text(strip=True)
 
         STR = fight_details[3].find_all('p')
-        fight_data.loc[rc, "Fighter_A_STR"] = STR[0].get_text(strip=True)
-        fight_data.loc[rc, "Fighter_B_STR"] = STR[1].get_text(strip=True)
+        A_data.loc[rc, "Fighter_STR"] = STR[0].get_text(strip=True)
+        B_data.loc[rc, "Fighter_STR"] = STR[1].get_text(strip=True)
 
         TD = fight_details[4].find_all('p')
-        fight_data.loc[rc, "Fighter_A_TD"] = TD[0].get_text(strip=True)
-        fight_data.loc[rc, "Fighter_B_TD"] = TD[1].get_text(strip=True)
+        A_data.loc[rc, "Fighter_TD"] = TD[0].get_text(strip=True)
+        B_data.loc[rc, "Fighter_TD"] = TD[1].get_text(strip=True)
 
         SUB = fight_details[5].find_all('p')
-        fight_data.loc[rc, "Fighter_A_SUB"] = SUB[0].get_text(strip=True)
-        fight_data.loc[rc, "Fighter_B_SUB"] = SUB[1].get_text(strip=True)
+        A_data.loc[rc, "Fighter_SUB"] = SUB[0].get_text(strip=True)
+        B_data.loc[rc, "Fighter_SUB"] = SUB[1].get_text(strip=True)
 
         fight_data.loc[rc, "Weight_Class"] = fight_details[6].get_text(strip=True)
         img_list = fight_details[6].find_all('img')
@@ -141,8 +149,64 @@ for i in range(min(len(event_links), RUN_LIMIT)):
 
         rc += 1
 
+#merge the dfs
+final_df = pd.DataFrame()
+
+for row in range(len(A_data)):
+    hash_input = A_data.loc[row, "Fighter_name"] + B_data.loc[row, "Fighter_name"] + fight_data.loc[row, "Date"]
+    hash_value = hash(hash_input)
+    should_swap = hash_value%2==0
+
+    # Create row dict with alternating red/blue fighters
+    if should_swap:
+        # B is Red, A is Blue
+        row_dict = {
+            "RedFighter": B_data.loc[row, "Fighter_name"],
+            "BlueFighter": A_data.loc[row, "Fighter_name"],
+            "RedFighter_KD": B_data.loc[row, "Fighter_KD"],
+            "BlueFighter_KD": A_data.loc[row, "Fighter_KD"],
+            "RedFighter_STR": B_data.loc[row, "Fighter_STR"],
+            "BlueFighter_STR": A_data.loc[row, "Fighter_STR"],
+            "RedFighter_TD": B_data.loc[row, "Fighter_TD"],
+            "BlueFighter_TD": A_data.loc[row, "Fighter_TD"],
+            "RedFighter_SUB": B_data.loc[row, "Fighter_SUB"],
+            "BlueFighter_SUB": A_data.loc[row, "Fighter_SUB"],
+        }
+    else:
+        # A is Red, B is Blue
+        row_dict = {
+            "RedFighter": A_data.loc[row, "Fighter_name"],
+            "BlueFighter": B_data.loc[row, "Fighter_name"],
+            "RedFighter_KD": A_data.loc[row, "Fighter_KD"],
+            "BlueFighter_KD": B_data.loc[row, "Fighter_KD"],
+            "RedFighter_STR": A_data.loc[row, "Fighter_STR"],
+            "BlueFighter_STR": B_data.loc[row, "Fighter_STR"],
+            "RedFighter_TD": A_data.loc[row, "Fighter_TD"],
+            "BlueFighter_TD": B_data.loc[row, "Fighter_TD"],
+            "RedFighter_SUB": A_data.loc[row, "Fighter_SUB"],
+            "BlueFighter_SUB": B_data.loc[row, "Fighter_SUB"],
+        }
+
+    # Add fight data columns
+    row_dict.update({
+        "Event": fight_data.loc[row, "Event"],
+        "Date": fight_data.loc[row, "Date"],
+        "Location": fight_data.loc[row, "Location"],
+        "WL": fight_data.loc[row, "WL"],
+        "Winner": fight_data.loc[row, "Winner"],
+        "Victory_Result": fight_data.loc[row, "Victory_Result"],
+        "Victory_Method": fight_data.loc[row, "Victory_Method"],
+        "Round": fight_data.loc[row, "Round"],
+        "Time": fight_data.loc[row, "Time"],
+        "Weight_Class": fight_data.loc[row, "Weight_Class"],
+        "Title": fight_data.loc[row, "Title"],
+    })
+
+    # Append to final dataframe
+    final_df = pd.concat([final_df, pd.DataFrame([row_dict])], ignore_index=True)
+
 # Save to data directory instead of hardcoded path
 output_path = os.path.join(os.path.dirname(__file__), 'data', 'UFC_Events.csv')
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
-fight_data.to_csv(output_path, index=False)
-print(f"Saved {len(fight_data)} fights to {output_path}")
+final_df.to_csv(output_path, index=False)
+print(f"Saved {len(final_df)} fights to {output_path}")
