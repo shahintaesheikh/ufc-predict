@@ -4,19 +4,19 @@ import re
 import os
 import time
 import pint
+import pandas as pd
 from bs4 import BeautifulSoup
 from icecream import ic
 from utils import (
     basic_request,
     setup_basic_file_paths,
     setup_logger,
-    save_ndjson,
     format_error
 )
 
 #global variables
 RUN_ONLY_ONE = False
-RUN_25_ITR = True #for testin for now
+RUN_25_ITR = False #for testin for now
 IS_IC_DEBUG = False
 
 PROJECT_NAME = 'scrape-ufc'
@@ -272,13 +272,13 @@ def executer() -> None:
 
     _, data_folder, _, _, log_file_path = setup_basic_file_paths(
         PROJECT_NAME)
-    
+
     LOGGER = setup_logger(log_file_path)
 
     fighter_links = get_fighters()
 
-    #save file for all fighters
-    ndjson_file_path = os.path.join(data_folder, 'fighter_data.ndjson')
+    # List to collect all fighter data
+    all_fighters = []
 
     #get data for each fighter
     for i, fighter in enumerate(fighter_links):
@@ -290,8 +290,7 @@ def executer() -> None:
 
         try:
             fighter_data = get_n_extract_fighter_data(fighter)
-
-            save_ndjson(fighter_data, ndjson_file_path)
+            all_fighters.append(fighter_data)
 
             if RUN_ONLY_ONE:
                 break
@@ -306,7 +305,14 @@ def executer() -> None:
                 break
 
             continue
-    LOGGER.info('Finished executor')
+
+    # Convert to DataFrame and save as CSV
+    fighters_df = pd.DataFrame(all_fighters)
+    csv_file_path = os.path.join(data_folder, 'fighter_data.csv')
+    fighters_df.to_csv(csv_file_path, index=False)
+
+    LOGGER.info('Finished executor. Saved %d fighters to %s', len(fighters_df), csv_file_path)
+    print(f"Saved {len(fighters_df)} fighters to {csv_file_path}")
 
 if __name__ == '__main__':
     executer()
