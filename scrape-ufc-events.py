@@ -62,7 +62,7 @@ B_data = pd.DataFrame(fighter_B_dict)
 
 rc = 0
 
-RUN_LIMIT = 20  # Limit number of events to scrape for testing
+RUN_LIMIT = 321  # Limit number of events to scrape for testing
 
 for i in range(min(len(event_links), RUN_LIMIT)):
     url = event_links[i]
