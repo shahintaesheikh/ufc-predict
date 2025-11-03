@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+import json
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
@@ -43,6 +44,7 @@ raw['Winner'].replace(np.nan, 2, inplace = True)
 x = raw.drop(columns=['Winner'])
 y = raw['Winner']
 
+x.drop(columns=['Round','RedFighter_KD','BlueFighter_KD','RedFighter_STR','BlueFighter_STR','RedFighter_TD','BlueFighter_TD','RedFighter_SUB','BlueFighter_SUB'],inplace = True)
 #fill nan values with average per weight class
 def fill_nan(x):
     df_filled = x.copy()
@@ -69,8 +71,12 @@ np.random.seed(seed)
 from sklearn.preprocessing import StandardScaler
 
 scaler = StandardScaler()
-x_train = scaler.fit_transform(x_train)
-x_test = scaler.fit_transform(x_test)
+x_train_scaled = scaler.fit_transform(x_train)
+x_test_scaled = scaler.transform(x_test)
+
+#convert back to DataFrame to keep column names
+x_train = pd.DataFrame(x_train_scaled, columns=x_train.columns, index=x_train.index)
+x_test = pd.DataFrame(x_test_scaled, columns=x_test.columns, index=x_test.index)
 
 model = xgb.XGBClassifier(
     objective = "binary:logistic",
@@ -90,6 +96,35 @@ y_pred = model.predict(x_test)
 accuracy = accuracy_score(y_test, y_pred)
 
 print(f"Accuracy: {accuracy:.4f}")
+
+model.save_model('models/ufc_xgb.json')
+print("model saved")
+
+feature_names = x_train.columns.tolist()
+with open('models/feature_names.txt', 'w') as f:
+    for feature in feature_names:
+        f.write(f"{feature}\n")
+
+print("features saved")
+
+label_mapping = {"0": "RedFighter wins", "1": "BlueFighter wins", np.nan: "NC/Draw/Cancelled"}
+with open('models/labels.txt', 'w') as f:
+    json.dump(label_mapping, f, indent=2)
+
+print("labels saved")
+
+metadata = {
+    "model_version" : "1.0",
+    "training_date" : "10/02/25",
+    "test_accuracy" : float(accuracy),
+    "num_features" : len(feature_names),
+    "num_training_samples" : len(x_train),
+    "hyperparameters" : {
+        "n_estimators" : "300",
+        "learning_rate" : "0.1",
+        "max_depth" : "5"
+    }
+}
 
 # # Check for overfitting
 # if abs(lr_score - test_accuracy) < 0.05:
