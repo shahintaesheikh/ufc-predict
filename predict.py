@@ -79,4 +79,18 @@ cv_lr = cross_val_score(lr, x_train, y_train, cv = kfold_lr)
 lr_score = cv_lr.mean()
 lr.fit(x_train, y_train)
 
-print("Kfold score: ", lr_score)
+# Evaluate on test set
+y_pred = lr.predict(x_test)
+test_accuracy = accuracy_score(y_test, y_pred)
+
+print(f"K-fold CV score: {lr_score:.4f}")
+print(f"Test set accuracy: {test_accuracy:.4f}")
+print(f"Difference: {abs(lr_score - test_accuracy):.4f}")
+
+# Check for overfitting
+if abs(lr_score - test_accuracy) < 0.05:
+    print("✓ Model appears to generalize well (difference < 5%)")
+elif abs(lr_score - test_accuracy) < 0.10:
+    print("⚠ Possible slight overfitting (difference 5-10%)")
+else:
+    print("✗ Likely overfitting (difference > 10%)")
