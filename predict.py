@@ -3,6 +3,7 @@
 #import libraries
 import pandas as pd
 import numpy as np
+import xgboost as xgb
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
@@ -71,26 +72,29 @@ scaler = StandardScaler()
 x_train = scaler.fit_transform(x_train)
 x_test = scaler.fit_transform(x_test)
 
-from sklearn.linear_model import LogisticRegression
+model = xgb.XGBClassifier(
+    objective = "binary:logistic",
+    n_estimators = 300,
+    learning_rate=0.1,
+    max_depth = 5,
+    random_state = seed,
+    eval_metric = "logloss"
+)
 
-lr = LogisticRegression(max_iter=1000)
-kfold_lr = StratifiedKFold(n_splits = 10, random_state=seed, shuffle = True)
-cv_lr = cross_val_score(lr, x_train, y_train, cv = kfold_lr)
-lr_score = cv_lr.mean()
-lr.fit(x_train, y_train)
+model.fit(x_train, y_train)
 
 # Evaluate on test set
-y_pred = lr.predict(x_test)
-test_accuracy = accuracy_score(y_test, y_pred)
+y_pred_proba = model.predict_proba(x_test)
+y_pred = model.predict(x_test)
 
-print(f"K-fold CV score: {lr_score:.4f}")
-print(f"Test set accuracy: {test_accuracy:.4f}")
-print(f"Difference: {abs(lr_score - test_accuracy):.4f}")
+accuracy = accuracy_score(y_test, y_pred)
 
-# Check for overfitting
-if abs(lr_score - test_accuracy) < 0.05:
-    print("✓ Model appears to generalize well (difference < 5%)")
-elif abs(lr_score - test_accuracy) < 0.10:
-    print("⚠ Possible slight overfitting (difference 5-10%)")
-else:
-    print("✗ Likely overfitting (difference > 10%)")
+print(f"Accuracy: {accuracy:.4f}")
+
+# # Check for overfitting
+# if abs(lr_score - test_accuracy) < 0.05:
+#     print("✓ Model appears to generalize well (difference < 5%)")
+# elif abs(lr_score - test_accuracy) < 0.10:
+#     print("⚠ Possible slight overfitting (difference 5-10%)")
+# else:
+#     print("✗ Likely overfitting (difference > 10%)")
