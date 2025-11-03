@@ -1,7 +1,7 @@
 import pandas as pd
 
-df_fighters = pd.read_csv('fighter_data.csv')
-df_events = pd.read_csv('UFC_Events.csv')
+df_fighters = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/data/fighter_data.csv')
+df_events = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/data/UFC_Events.csv')
 
 for stat, event in df_events.iterrows():
     red = event['RedFighter']
@@ -39,5 +39,5 @@ for stat, event in df_events.iterrows():
         event['Blue_avg_sub_attempt_per_15'] = blue_stats['avg_sub_attempt_per_15'].values[0]
 
 # Save merged dataframe
-df_events.to_csv('UFC_Events_Merged.csv', index=False)
+df_events.to_csv('UFC_Final.csv', index=False)
 print(f"Saved {len(df_events)} events with merged fighter stats")
