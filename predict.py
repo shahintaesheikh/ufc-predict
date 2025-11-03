@@ -6,18 +6,36 @@ import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import accuracy_score
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold
 
-raw = pd.read_json('fighter_data.ndjson', lines=True)
+raw = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/data/UFC_Final.csv')
 
-raw.drop(columns=['RedFighter', 'BlueFighter', 'Date', 'Location', 'Country', 'Gender', 'BetterRank', 'Finish', 'FinishDetails', 'FinishRoundTime'], inplace = True)
+# map winner names to Red or Blue
+def map_winner_to_color(df):
+    def get_color(row):
+        winner = row['Winner']
+        if pd.isna(winner):
+            return np.nan  
+        elif winner == row['RedFighter']:
+            return 'Red'
+        elif winner == row['BlueFighter']:
+            return 'Blue'
+        else:
+            return np.nan
+
+    df['Winner'] = df.apply(get_color, axis=1)
+    return df
+
+raw = map_winner_to_color(raw)
+
+raw.drop(columns=['RedFighter', 'BlueFighter', 'Date', 'Location', 'Event', 'Victory_Method', 'Victory_Result', 'WL','Title','Fight_Bonus','Perf_Bonus','Sub_Bonus','KO_Bonus'], inplace = True)
 
 stance_map = {'Orthodox':0, 'Southpaw':1, 'Switch':2, 'Open Stance':3}
-raw['BlueStance'] = raw['BlueStance'].replace(stance_map)
-raw['RedStance'] = raw['RedStance'].replace(stance_map)
+raw['Blue_stance'] = raw['Blue_stance'].replace(stance_map)
+raw['Red_stance'] = raw['Red_stance'].replace(stance_map)
 
-win_map = {'Red':0, 'Blue':1}
+win_map = {'Red': 0, 'Blue':1, np.nan:2}
 raw['Winner'] = raw['Winner'].replace(win_map)
 raw['Winner'].replace(np.nan, 2, inplace = True)
 
@@ -28,7 +46,7 @@ y = raw['Winner']
 def fill_nan(x):
     df_filled = x.copy()
     num_cols = df_filled.select_dtypes(include = [np.number]).columns
-    df_filled[num_cols] = df_filled.groupby('WeightClass')[num_cols].transform(lambda x: x.fillna(x.mean()))
+    df_filled[num_cols] = df_filled.groupby('Weight_Class')[num_cols].transform(lambda x: x.fillna(x.mean()))
 
     remaining_na = df_filled[num_cols].isna().sum().sum()
     if remaining_na > 0:
