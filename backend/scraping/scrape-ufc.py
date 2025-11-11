@@ -7,7 +7,7 @@ import pint
 import pandas as pd
 from bs4 import BeautifulSoup
 from icecream import ic
-from utils import (
+from backend.utils import (
     basic_request,
     setup_basic_file_paths,
     setup_logger,
