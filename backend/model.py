@@ -27,6 +27,8 @@ def map_winner_to_color(df):
             return np.nan
 
     df['Winner'] = df.apply(get_color, axis=1)
+    raw['Winner'].unique()
+    print(raw['Winner'].value_counts())
     return df
 
 raw = map_winner_to_color(raw)

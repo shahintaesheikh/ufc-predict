@@ -83,37 +83,24 @@ def predict(request:PredictionRequest):
         raise HTTPException(status_code=404, detail = f"Fighter '{request.blue_fighter}' not found")
 
     # Setup 1: Red fighter in red position, Blue fighter in blue position
-    prediction_data_1 = prepare_data(red_stats, blue_stats)
-    prob_1 = model.predict_proba(prediction_data_1)[0]
-    # prob_1[0] = probability that position 1 (red) wins
-    red_prob_from_setup1 = float(prob_1[0])
-
-    # Setup 2: Red fighter in blue position, Blue fighter in red position (FLIPPED)
-    prediction_data_2 = prepare_data(blue_stats, red_stats)
-    prob_2 = model.predict_proba(prediction_data_2)[0]
-    # prob_2[1] = probability that position 2 (blue) loses = probability red fighter wins
-    # But since red is now in blue position: prob_2[1] = P(red loses from blue position)
-    # So P(red wins) = 1 - prob_2[0]
-    red_prob_from_setup2 = 1.0 - float(prob_2[0])
-
-    # Average the two predictions to get position-unbiased estimate
-    red_probability = (red_prob_from_setup1 + red_prob_from_setup2) / 2.0
-    blue_probability = 1.0 - red_probability
+    prediction_data = prepare_data(red_stats, blue_stats)
+    prob_red = float(model.predict_proba(prediction_data)[0])
+    prob_blue = float(model.predict_proba(prediction_data)[1])
 
     # Determine winner
-    if red_probability > blue_probability:
+    if prob_red > prob_blue:
         winner = "RedFighter wins"
-        confidence = red_probability
+        confidence = prob_red
     else:
         winner = "BlueFighter win"
-        confidence = blue_probability
+        confidence = prob_blue
 
     return {
         "winner" : winner,
         "red_fighter" : request.red_fighter,
         "blue_fighter" : request.blue_fighter,
-        "red_win_probability" : red_probability,
-        "blue_win_probability" : blue_probability,
+        "red_win_probability" : prob_red,
+        "blue_win_probability" : prob_blue,
         "confidence" : confidence,
     }
 
