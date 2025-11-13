@@ -116,7 +116,24 @@ x = fill_nan(x, weight_class)
 
 x.replace(np.nan, 0, inplace = True)
 
-x = x.select_dtypes(include=[np.number]) 
+x = x.select_dtypes(include=[np.number])
+
+# Create symmetric augmented data
+# For every sample (differentials A, outcome), add a flipped version (differentials -A, flipped outcome)
+print(f"\nOriginal dataset size: {len(x)}")
+x_flipped = -x.copy()  # Negate all differentials
+y_flipped = 1 - y.copy()  # Flip outcomes (0 -> 1, 1 -> 0)
+
+# Combine original and flipped data
+x_augmented = pd.concat([x, x_flipped], ignore_index=True)
+y_augmented = pd.concat([y, y_flipped], ignore_index=True)
+
+print(f"Augmented dataset size: {len(x_augmented)}")
+print(f"(Original {len(x)} + Flipped {len(x_flipped)} = {len(x_augmented)})")
+
+# Use augmented data for training/testing split
+x = x_augmented
+y = y_augmented
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state = 42)
 
