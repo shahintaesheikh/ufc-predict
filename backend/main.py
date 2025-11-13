@@ -87,26 +87,38 @@ def predict(request:PredictionRequest):
     if blue_stats is None:
         raise HTTPException(status_code=404, detail = f"Fighter '{request.blue_fighter}' not found")
 
-    # Setup 1: Red fighter in red position, Blue fighter in blue position
-    prediction_data = prepare_data(red_stats, blue_stats)
-    proba = model.predict_proba(prediction_data)[0]
-    prob_red_loses = float(proba[0])  # Class 0: Red fighter loses
-    prob_red_wins = float(proba[1])   # Class 1: Red fighter wins
+    # Position-agnostic predictions
 
-    # Determine winner
-    if prob_red_wins > prob_red_loses:
-        winner = "RedFighter wins"
-        confidence = prob_red_wins
+    # Scenario 1: normal positioning
+    prediction_data_1 = prepare_data(red_stats, blue_stats)
+    proba_1 = model.predict_proba(prediction_data_1)[0]
+    prob_red_fighter_scenario1 = float(proba_1[1])  # Red fighter's win prob in scenario 1
+    prob_blue_fighter_scenario1 = float(proba_1[0])  # Blue fighter's win prob in scenario 1
+
+    #Scenario 2: swapped positions
+    prediction_data_2 = prepare_data(blue_stats, red_stats)
+    proba_2 = model.predict_proba(prediction_data_2)[0]
+    prob_blue_fighter_scenario2 = float(proba_2[1])  # Blue fighter's win prob in scenario 2 (red position)
+    prob_red_fighter_scenario2 = float(proba_2[0])   # Red fighter's win prob in scenario 2 (blue position)
+
+    # Average the probabilities across both position scenarios
+    prob_red_fighter_wins = (prob_red_fighter_scenario1 + prob_red_fighter_scenario2) / 2
+    prob_blue_fighter_wins = (prob_blue_fighter_scenario1 + prob_blue_fighter_scenario2) / 2
+
+    #Determine winner (fighter with higher averaged probability)
+    if prob_red_fighter_wins > prob_blue_fighter_wins:
+        winner = f"{request.red_fighter} wins"
+        confidence = prob_red_fighter_wins
     else:
-        winner = "BlueFighter wins"
-        confidence = prob_red_loses
+        winner = f"{request.blue_fighter} wins"
+        confidence = prob_blue_fighter_wins
 
     return {
         "winner" : winner,
         "red_fighter" : request.red_fighter,
         "blue_fighter" : request.blue_fighter,
-        "red_win_probability" : prob_red_wins,
-        "blue_win_probability" : prob_red_loses,
+        "red_win_probability" : prob_red_fighter_wins,
+        "blue_win_probability" : prob_blue_fighter_wins,
         "confidence" : confidence,
     }
 
@@ -114,8 +126,4 @@ def predict(request:PredictionRequest):
 def read_root():
     return {"message":"UFC Fight Predictor API is running"}
 
-#x characteristics for each fighter
-#whole model has 2x features
-#decision tree splits based on which data is pure
-#features should be difference between red and blue fighter
-#
+
