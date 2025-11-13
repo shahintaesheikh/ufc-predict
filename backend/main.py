@@ -5,12 +5,30 @@ import xgboost as xgb
 import pandas as pd
 from pydantic import BaseModel
 import numpy as np
+import logging 
+from datetime import datetime
 
-fighter_df = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/backend/data/fighter_data.csv')
+logging.basicConfig(
+    level = logging.INFO,
+    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers = [logging.FileHandler('api_logs.log'), logging.StreamHandler()]
+)
+
+logger = logging.getLogger(__name__)
+
+logger.info("Starting UFC predictor API")
+try:
+    fighter_df = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/backend/data/fighter_data.csv')
+    logger.info(f"Loaded {len(fighter_df)} fighters from CSV")
+except Exception as e:
+    logger.error(f"Failed to load fighter data: {e}")
+    raise
+
 
 class PredictionRequest(BaseModel):
     red_fighter : str
     blue_fighter : str
+
 
 def get_stats(fighter_name : str):
     stats = fighter_df[fighter_df["name"]==fighter_name]
@@ -36,15 +54,6 @@ def get_stats(fighter_name : str):
 
 #get data in features format
 def prepare_data(red_stats : dict, blue_stats : dict):
-    """
-    Create differential-based features for prediction.
-    Each feature is calculated as: Red value - Blue value
-    Positive differential = Red fighter advantage
-    Negative differential = Blue fighter advantage
-
-    Note: stance and dob differentials are included to match training features.
-    Since these are non-numeric, they contribute NaN values which get treated as 0 during prediction.
-    """
     prediction_data = [
         red_stats['reach_cm'] - blue_stats['reach_cm'],
         np.nan,  # stance differential (non-numeric, becomes NaN then 0)
@@ -64,11 +73,18 @@ def prepare_data(red_stats : dict, blue_stats : dict):
 
     return np.array([prediction_data])
 
-model = xgb.XGBClassifier()
-model.load_model('/Users/shahinsheikh/ufc-predictor-web/backend/models/ufc_xgb.json')
+try:
+    model = xgb.XGBClassifier()
+    model.load_model('/Users/shahinsheikh/ufc-predictor-web/backend/models/ufc_xgb.json')
+    logger.info("Successfully loaded XGB model")
+except Exception as e:
+    logger.error(f"Failed to load XGB model: {e}")
+    raise
 
+logger.info("Completed preparation for endpoints. Ready to receive requests.")
 app = FastAPI()
 
+#getting all fighters endpoint
 @app.get("/fighters")
 def get_fighters():
     fighter_names = fighter_df['name'].unique().tolist()
@@ -77,6 +93,7 @@ def get_fighters():
 
     return {"fighters": fighter_names}
 
+#prediction endpoint
 @app.post("/predict")
 def predict(request:PredictionRequest):
     red_stats = get_stats(request.red_fighter)
@@ -122,8 +139,65 @@ def predict(request:PredictionRequest):
         "confidence" : confidence,
     }
 
+
 @app.get("/")
 def read_root():
-    return {"message":"UFC Fight Predictor API is running"}
+    return {"message":"UFC Fight Predictor API is running properly"}
+
+#Health endpoint 
+@app.get("/health")
+def health_check():
+    try:
+        # Check if model is loaded
+        if model is None:
+            return {
+                "status": "error",
+                "message": "Model is not loaded",
+                "model_loaded": False,
+                "api_running": True
+            }, 500
+
+        #Try to get model info
+        model_info = {
+            "type": str(type(model).__name__),
+            "n_features": model.n_features_in_ if hasattr(model, 'n_features_in_') else None,
+        }
+
+        #Try dummy prediction to ensure model works
+        dummy_input = [[0.0] * 11]
+        try:
+            dummy_pred = model.predict_proba(dummy_input)
+            model_functional = True
+        except Exception as e:
+            model_functional = False
+            model_error = str(e)
+
+        # Check if fighter data is available
+        fighter_count = len(fighter_df) if fighter_df is not None else 0
+
+        return {
+            "status": "healthy",
+            "message": "UFC Fight Predictor API is running properly",
+            "api_running": True,
+            "model_loaded": True,
+            "model_functional": model_functional,
+            "model_info": model_info,
+            "fighters_available": fighter_count,
+            "endpoints": {
+                "predict": "/predict (POST)",
+                "fighters": "/fighters (GET)",
+                "health": "/health (GET)",
+                "root": "/ (GET)"
+            }
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Health check failed: {str(e)}",
+            "api_running": True,
+            "model_loaded": False,
+            "error_details": str(e)
+        }, 500
 
 
