@@ -11,14 +11,14 @@ from sklearn.model_selection import cross_val_score
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold
 
-raw = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/data/UFC_Final.csv')
+raw = pd.read_csv('/Users/shahinsheikh/ufc-predictor-web/backend/data/UFC_Final.csv')
 
 # map winner names to Red or Blue
 def map_winner_to_color(df):
     def get_color(row):
         winner = row['Winner']
         if pd.isna(winner):
-            return np.nan  
+            return np.nan
         elif winner == row['RedFighter']:
             return 'Red'
         elif winner == row['BlueFighter']:
@@ -27,31 +27,82 @@ def map_winner_to_color(df):
             return np.nan
 
     df['Winner'] = df.apply(get_color, axis=1)
-    raw['Winner'].unique()
     print(raw['Winner'].value_counts())
     return df
 
 raw = map_winner_to_color(raw)
 
-raw.drop(columns=['RedFighter', 'BlueFighter', 'Date', 'Location', 'Event', 'Victory_Method', 'Victory_Result', 'WL','Title','Fight_Bonus','Perf_Bonus','Sub_Bonus','KO_Bonus'], inplace = True)
+# Create differential-based features before dropping fighter names
+def create_differentials(df):
+    """
+    Create differential features where:
+    - Positive value = Red fighter advantage
+    - Negative value = Blue fighter advantage (Red disadvantage)
+    Returns DataFrame with differentials and target variable
+    """
+    differentials = pd.DataFrame()
 
-stance_map = {'Orthodox':0, 'Southpaw':1, 'Switch':2, 'Open Stance':3}
-raw['Blue_stance'] = raw['Blue_stance'].replace(stance_map)
-raw['Red_stance'] = raw['Red_stance'].replace(stance_map)
+    # Copy relevant columns for processing
+    differentials['Weight_Class'] = df['Weight_Class']
+    differentials['Winner'] = df['Winner']
 
-win_map = {'Red': 0, 'Blue':1, np.nan:2}
-raw['Winner'] = raw['Winner'].replace(win_map)
-raw['Winner'].replace(np.nan, 2, inplace = True)
+    # Create differentials for all numeric features (Red - Blue)
+    red_cols = [col for col in df.columns if col.startswith('Red_')]
 
-x = raw.drop(columns=['Winner'])
-y = raw['Winner']
+    # Map Red columns to Blue columns
+    for red_col in red_cols:
+        feature_name = red_col.replace('Red_', '')
+        blue_col = f'Blue_{feature_name}'
 
-x.drop(columns=['Round','RedFighter_KD','BlueFighter_KD','RedFighter_STR','BlueFighter_STR','RedFighter_TD','BlueFighter_TD','RedFighter_SUB','BlueFighter_SUB'],inplace = True)
+        if blue_col in df.columns:
+            # Only create differentials for numeric columns (skip stance, dob, etc.)
+            try:
+                # Attempt to subtract (will work for numeric columns)
+                differentials[feature_name] = pd.to_numeric(df[red_col], errors='coerce') - pd.to_numeric(df[blue_col], errors='coerce')
+            except (TypeError, ValueError):
+                # Skip non-numeric columns
+                continue
+
+    return differentials
+
+differentials = create_differentials(raw)
+
+# Create target variable: 1 if Red wins, 0 if Red loses (Blue wins)
+# We need to map from the color (Red/Blue) to the actual outcome from the fighter's perspective
+def create_target(df):
+    """
+    Create target variable:
+    - 1: Red fighter wins
+    - 0: Red fighter loses (Blue wins)
+    - NaN: Draw/No contest (will be dropped)
+    """
+    target = pd.Series(index=df.index, dtype='float64')
+
+    for idx, winner in df['Winner'].items():
+        if winner == 'Red':
+            target[idx] = 1
+        elif winner == 'Blue':
+            target[idx] = 0
+        else:
+            target[idx] = np.nan
+
+    return target
+
+y = create_target(raw)
+
+# Drop rows with NaN targets (draws, no contests)
+valid_idx = y.notna()
+x = differentials[valid_idx].copy()
+y = y[valid_idx].copy()
+
+# Drop Weight_Class and Winner columns (metadata), keep only numeric features
+x.drop(columns=['Weight_Class', 'Winner'], inplace=True)
+
 #fill nan values with average per weight class
-def fill_nan(x):
+def fill_nan(x, weight_class):
     df_filled = x.copy()
     num_cols = df_filled.select_dtypes(include = [np.number]).columns
-    df_filled[num_cols] = df_filled.groupby('Weight_Class')[num_cols].transform(lambda x: x.fillna(x.mean()))
+    df_filled[num_cols] = df_filled.groupby(weight_class)[num_cols].transform(lambda x: x.fillna(x.mean()))
 
     remaining_na = df_filled[num_cols].isna().sum().sum()
     if remaining_na > 0:
@@ -59,7 +110,9 @@ def fill_nan(x):
 
     return df_filled
 
-x = fill_nan(x)
+# Re-add Weight_Class for grouping before fill_nan
+weight_class = differentials[valid_idx]['Weight_Class'].copy()
+x = fill_nan(x, weight_class)
 
 x.replace(np.nan, 0, inplace = True)
 
@@ -99,18 +152,18 @@ accuracy = accuracy_score(y_test, y_pred)
 
 print(f"Accuracy: {accuracy:.4f}")
 
-model.save_model('models/ufc_xgb.json')
+model.save_model('backend/models/ufc_xgb.json')
 print("model saved")
 
 feature_names = x_train.columns.tolist()
-with open('models/feature_names.txt', 'w') as f:
+with open('backend/models/feature_names.txt', 'w') as f:
     for feature in feature_names:
         f.write(f"{feature}\n")
 
 print("features saved")
 
-label_mapping = {"0": "RedFighter wins", "1": "BlueFighter wins", np.nan: "NC/Draw/Cancelled"}
-with open('models/labels.txt', 'w') as f:
+label_mapping = {"0": "Red Fighter (Differential) loses", "1": "Red Fighter (Differential) wins", np.nan: "NC/Draw/Cancelled"}
+with open('backend/models/labels.txt', 'w') as f:
     json.dump(label_mapping, f, indent=2)
 
 print("labels saved")

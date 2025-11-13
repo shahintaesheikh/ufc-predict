@@ -1,5 +1,0 @@
-{
-  "0": "RedFighter wins",
-  "1": "BlueFighter wins",
-  "NaN": "NC/Draw/Cancelled"
-}

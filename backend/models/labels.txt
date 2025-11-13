@@ -1,5 +1,5 @@
 {
-  "0": "RedFighter wins",
-  "1": "BlueFighter wins",
+  "0": "Red Fighter (Differential) loses",
+  "1": "Red Fighter (Differential) wins",
   "NaN": "NC/Draw/Cancelled"
 }
