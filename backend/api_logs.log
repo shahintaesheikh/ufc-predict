@@ -5,3 +5,7 @@
 2025-11-23 18:34:53,772 - main - INFO - Loaded 4447 fighters from CSV
 2025-11-23 18:34:53,813 - main - INFO - Successfully loaded XGB model
 2025-11-23 18:34:53,813 - main - INFO - Completed preparation for endpoints. Ready to receive requests.
+2025-11-23 18:53:42,875 - main - INFO - Starting UFC predictor API
+2025-11-23 18:53:42,882 - main - INFO - Loaded 4447 fighters from CSV
+2025-11-23 18:53:42,920 - main - INFO - Successfully loaded XGB model
+2025-11-23 18:53:42,920 - main - INFO - Completed preparation for endpoints. Ready to receive requests.
