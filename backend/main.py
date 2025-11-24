@@ -84,6 +84,15 @@ except Exception as e:
 logger.info("Completed preparation for endpoints. Ready to receive requests.")
 app = FastAPI()
 
+# Configure CORS for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 #getting all fighters endpoint
 @app.get("/fighters")
 def get_fighters():

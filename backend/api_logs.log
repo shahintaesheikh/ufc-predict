@@ -1,0 +1,7 @@
+2025-11-23 18:34:16,668 - main - INFO - Starting UFC predictor API
+2025-11-23 18:34:16,675 - main - INFO - Loaded 4447 fighters from CSV
+2025-11-23 18:34:16,675 - main - ERROR - Failed to load XGB model: sklearn needs to be installed in order to use this module
+2025-11-23 18:34:53,763 - main - INFO - Starting UFC predictor API
+2025-11-23 18:34:53,772 - main - INFO - Loaded 4447 fighters from CSV
+2025-11-23 18:34:53,813 - main - INFO - Successfully loaded XGB model
+2025-11-23 18:34:53,813 - main - INFO - Completed preparation for endpoints. Ready to receive requests.
