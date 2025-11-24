@@ -4,38 +4,32 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { predictFight, PredictionResponse } from "@/services/api"
 
 export default function App() {
   const [fighter1, setFighter1] = useState("")
   const [fighter2, setFighter2] = useState("")
   const [loading, setLoading] = useState(false)
-  const [prediction, setPrediction] = useState<{ winner: string; confidence: number } | null>(null)
+  const [prediction, setPrediction] = useState<PredictionResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handlePredict = async () => {
     if (!fighter1.trim() || !fighter2.trim()) {
-      alert("Please enter both fighter names")
+      setError("Please enter both fighter names")
       return
     }
 
     setLoading(true)
+    setError(null)
+    setPrediction(null)
 
-    // In a real app, this would be a fetch to your actual backend URL
-    // e.g., const response = await fetch("https://your-api.com/predict", ...)
-    // For this frontend demo, we'll simulate a backend response
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000)) // Simulate network delay
-
-      // Random mock prediction logic for demonstration
-      const randomWinner = Math.random() > 0.5 ? fighter1 : fighter2
-      const randomConfidence = 0.5 + Math.random() * 0.4 // 50-90%
-
-      setPrediction({
-        winner: randomWinner,
-        confidence: randomConfidence,
-      })
-    } catch (error) {
-      console.error("Prediction error:", error)
-      alert("Failed to get prediction.")
+      const result = await predictFight(fighter1.trim(), fighter2.trim())
+      setPrediction(result)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to get prediction"
+      setError(errorMessage)
+      console.error("Prediction error:", err)
     } finally {
       setLoading(false)
     }
@@ -115,12 +109,38 @@ export default function App() {
               )}
             </Button>
 
+            {/* Error Display */}
+            {error && !loading && (
+              <div className="mt-8 p-6 bg-destructive/10 border border-destructive/30 rounded-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center">
+                  <p className="text-destructive font-bold text-lg">Error</p>
+                  <p className="text-destructive/80 mt-2">{error}</p>
+                </div>
+              </div>
+            )}
+
             {/* Prediction Result */}
             {prediction && !loading && (
               <div className="mt-8 p-6 bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/30 rounded-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center">
                   <p className="text-muted-foreground text-sm mb-2">PREDICTED WINNER</p>
                   <p className="text-3xl font-black text-primary mb-2 uppercase text-balance">{prediction.winner}</p>
+
+                  {/* Detailed Stats */}
+                  <div className="mt-6 grid grid-cols-2 gap-4 text-left mb-6">
+                    <div className="p-3 bg-card rounded border border-border">
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Red Fighter</p>
+                      <p className="text-sm font-bold text-foreground">{prediction.red_fighter}</p>
+                      <p className="text-xs text-accent mt-1">{(prediction.red_win_probability * 100).toFixed(1)}% win</p>
+                    </div>
+                    <div className="p-3 bg-card rounded border border-border">
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Blue Fighter</p>
+                      <p className="text-sm font-bold text-foreground">{prediction.blue_fighter}</p>
+                      <p className="text-xs text-accent mt-1">{(prediction.blue_win_probability * 100).toFixed(1)}% win</p>
+                    </div>
+                  </div>
+
+                  {/* Confidence Bar */}
                   <div className="flex items-center justify-center gap-2">
                     <div className="flex-1 bg-border rounded-full h-2">
                       <div
