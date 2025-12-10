@@ -7,7 +7,7 @@ A machine learning web app that predicts UFC fight outcomes using XGBoost and fi
 
 ## Overview
 
-This app predicts winners in hypothetical UFC matchups based on fighter stats like reach, striking accuracy, and takedown defense. The model is trained on 4000+ historical fights and achieves ~86% accuracy.
+This app predicts winners in hypothetical UFC matchups based on fighter stats like reach, striking accuracy, and takedown defense. The model is trained on 4000+ historical fights and achieves ~66% accuracy.
 
 ## Features
 
