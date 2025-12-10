@@ -165,6 +165,4 @@ This eliminates the historical bias where higher-ranked fighters were assigned t
 - [ ] Feature importance explanations (SHAP)
 - [ ] Fighter profile pages
 - [ ] Prediction history tracking
-- [ ] Dark mode
-- [ ] Mobile app
 
